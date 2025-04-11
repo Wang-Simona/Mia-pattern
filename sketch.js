@@ -1,137 +1,50 @@
-import { AudioController } from "./modules/audioController.js";
-import {
-  calculateTextProperties,
-  getTextAlignment,
-} from "./modules/textCalculations.js";
-import { DeviceOrientationController } from "./modules/deviceOrientationController.js";
-import { DensityController } from "./modules/densityController.js";
-import { InputController } from "./modules/inputController.js";
-import {
-  disegnaPunto,
-  caricamentoRisorse,
-  impostazioni,
-  sotto,
-  sopra,
-  configurazione,
-} from "./code.js";
-
-// /* Variabili */
-
-/* Controllers */
-
-const audioController = new AudioController(
-  configurazione.sensibilitàMicrofonoBase
-);
-const orientationController = new DeviceOrientationController();
-const densityController = new DensityController(
-  configurazione.densitàPuntiBase
-);
-const inputController = new InputController(
-  audioController,
-  densityController,
-  orientationController,
-  configurazione.nascondiInterfaccia
-);
-
-/* Font */
-
-let font;
+let flowerImg, leafImg;
+let elements = [];
 
 function preload() {
-  font = loadFont(configurazione.percorsoFont);
-  caricamentoRisorse();
+  flowerImg = loadImage("assets/flower.png");
+  leafImg = loadImage("assets/leaf.png");
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
-  audioController.init();
-  inputController.init();
-  impostazioni();
+  createCanvas(600, 600);
+  imageMode(CENTER);
+  textAlign(CENTER, CENTER);
 }
 
 function draw() {
-  // Calculate text properties
+  background(255);
 
-  const { fontSize, position } = calculateTextProperties(
-    configurazione.testo,
-    configurazione.dimensione,
-    configurazione.interlinea,
-    font,
-    configurazione.allineamento,
-    width,
-    height
-  );
-
-  // Text setup
-
-  textFont(font);
-  textSize(fontSize);
-  textLeading(fontSize * configurazione.interlinea);
-  textAlign(getTextAlignment(configurazione.allineamento));
-
-  function testo() {
-    text(configurazione.testo, position.x, position.y);
+  // 所有添加的图案元素
+  for (let el of elements) {
+    image(el.img, el.x, el.y, el.size, el.size);
   }
 
-  sotto(testo);
+  // 工具区底部
+  fill(230);
+  rect(0, height - 80, width, 80);
 
-  // Points
+  image(flowerImg, width / 2 - 80, height - 40, 60, 60);
+  image(leafImg, width / 2 + 80, height - 40, 60, 60);
 
-  const points = font.textToPoints(
-    configurazione.testo,
-    position.x,
-    position.y,
-    fontSize,
-    {
-      sampleFactor: densityController.getDensity(),
+  fill(0);
+  textSize(14);
+  text("点击添加图案 / 按 S 键下载", width / 2, height - 10);
+}
+
+function mousePressed() {
+  // 检测点击的是哪个图标
+  if (mouseY > height - 80) {
+    if (dist(mouseX, mouseY, width / 2 - 80, height - 40) < 30) {
+      elements.push({ img: flowerImg, x: width / 2, y: height / 2, size: 100 });
+    } else if (dist(mouseX, mouseY, width / 2 + 80, height - 40) < 30) {
+      elements.push({ img: leafImg, x: width / 2, y: height / 2, size: 100 });
     }
-  );
-
-  const micLevel = audioController.getLevel();
-  const orientationData = orientationController.getOrientationData();
-
-  points.forEach((point, index) =>
-    disegnaPunto({
-      x: point.x,
-      y: point.y,
-      angolo: point.alpha,
-      indice: index,
-      unita: min(width / 10, height / 10),
-      volume: micLevel,
-      alpha: orientationData.alpha,
-      beta: orientationData.beta,
-      gamma: orientationData.gamma,
-      frameCount,
-    })
-  );
-
-  //
-
-  sopra(testo);
-
-  // Motion permissions
-
-  if (!orientationController.isPermissionGranted()) {
-    push();
-    fill(0);
-    textSize(24);
-    textAlign(CENTER, CENTER);
-    text("Please grant sensor permissions", width / 2, height / 2);
-    pop();
   }
 }
 
-function windowResized() {
-  resizeCanvas(windowWidth, windowHeight);
+function keyPressed() {
+  if (key === "s" || key === "S") {
+    saveCanvas("my_pattern", "png");
+  }
 }
-
-//
-
-// @ts-ignore
-window.preload = preload;
-// @ts-ignore
-window.setup = setup;
-// @ts-ignore
-window.draw = draw;
-// @ts-ignore
-window.windowResized = windowResized;
